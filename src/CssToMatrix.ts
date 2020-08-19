@@ -1,0 +1,98 @@
+import { mat4 } from "gl-matrix";
+import { splitComma, splitBracket, splitUnit, splitSpace, isArray } from "@daybrush/utils";
+import { MatrixInfo } from "./types";
+
+export function parseMat(transform: string | string[]): number[] {
+    return toMat(parse(transform));
+}
+export function toMat(matrixInfos: MatrixInfo[]): number[] {
+    const target = [
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1,
+    ];
+
+    matrixInfos.forEach(info => {
+        const {
+            functionName,
+            functionValue,
+        } = info;
+
+        if (!functionName) {
+            return;
+        }
+        (mat4 as any)[functionName](target, target, functionValue);
+    });
+    return target;
+}
+export function parse(transform: string | string[]): MatrixInfo[] {
+    const transforms = isArray(transform) ? transform : splitSpace(transform);
+
+    return transforms.map(t => {
+        const { prefix: name, value } = splitBracket(t);
+
+        let functionName: keyof typeof mat4 | "" = "";
+        let functionValue: any = "";
+
+        if (name === "translate" || name === "translateX" || name === "translate3d") {
+            const [posX, posY = 0, posZ = 0] = splitComma(value!).map(v => parseFloat(v));
+
+            functionName = "translate";
+            functionValue = [posX, posY, posZ];
+        } else if (name === "translateY") {
+            const posY = parseFloat(value!);
+
+            functionName = "translate";
+            functionValue = [0, posY, 0];
+        } else if (name === "translateZ") {
+            const posZ = parseFloat(value!);
+
+            functionName = "translate";
+            functionValue = [0, 0, posZ];
+        } else if (name === "scale" || name === "scale3d") {
+            const [sx, sy = sx, sz = 1] = splitComma(value!).map(v => parseFloat(v)) as number[];
+
+            functionName = "scale";
+            functionValue = [sx, sy, sz];
+        } else if (name === "scaleX") {
+            const sx = parseFloat(value!);
+
+            functionName = "scale";
+            functionValue = [sx, 1, 1];
+        } else if (name === "scaleY") {
+            const sy = parseFloat(value!);
+
+            functionName = "scale";
+            functionValue = [1, sy, 1];
+        } else if (name === "scaleZ") {
+            const sz = parseFloat(value!);
+            functionName = "scale";
+            functionValue = [1, 1, sz];
+        } else if (name === "rotate" || name === "rotateZ" || name === "rotateX" || name === "rotateY") {
+            const { unit, value: unitValue } = splitUnit(value!);
+            const rad = unit === "rad" ? unitValue : unitValue * Math.PI / 180;
+
+            functionName = name === "rotate" ? "rotateZ" : name;
+            functionValue = rad;
+        } else if (name === "matrix3d") {
+            functionName = "multiply";
+            functionValue = splitComma(value!).map(v => parseFloat(v));
+        } else if (name === "matrix") {
+            const m = splitComma(value!).map(v => parseFloat(v));
+            functionName = "multiply";
+            functionValue = [
+                m[0], m[1], 0, 0,
+                m[2], m[3], 0, 0,
+                0, 0, 1, 0,
+                m[4], m[5], 0, 1,
+            ];
+        }
+        return {
+            name: name!,
+            value: value!,
+            functionName,
+            functionValue,
+        };
+    });
+}
