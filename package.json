@@ -1,6 +1,6 @@
 {
     "name": "css-to-mat",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "description": "css-to-mat",
     "main": "./dist/css-to-mat.cjs.js",
     "module": "./dist/css-to-mat.esm.js",
