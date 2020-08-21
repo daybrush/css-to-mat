@@ -1,1 +1,5 @@
-export * from "./CSSToMatrix";
+export {
+    parse,
+    parseMat,
+    toMat,
+} from "./CSSToMatrix";
