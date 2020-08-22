@@ -2,16 +2,45 @@ import { mat4 } from "gl-matrix";
 import { splitComma, splitBracket, splitUnit, splitSpace, isArray } from "@daybrush/utils";
 import { MatrixInfo } from "./types";
 
-export function parseMat(transform: string | string[]): number[] {
-    return toMat(parse(transform));
-}
-export function toMat(matrixInfos: MatrixInfo[]): number[] {
-    const target = [
+export function createMatrix() {
+    return [
         1, 0, 0, 0,
         0, 1, 0, 0,
         0, 0, 1, 0,
         0, 0, 0, 1,
     ];
+}
+export function parseMat(transform: string | string[]): number[] {
+    return toMat(parse(transform));
+}
+export function getElementMatrix(el: HTMLElement) {
+    return parseMat(getComputedStyle(el).transform!);
+}
+
+export function getDistElementMatrix(el: HTMLElement, container = document.body): number[] {
+    let target: HTMLElement | null = el;
+    const matrix = createMatrix() as any;
+
+    while (target) {
+        const transform = getComputedStyle(target).transform!;
+        mat4.multiply(matrix, parseMat(transform) as mat4, matrix);
+
+        if (target === container) {
+            return;
+        }
+        target = target.parentElement;
+    }
+    mat4.invert(matrix, matrix);
+
+    matrix[12] = 0;
+    matrix[13] = 0;
+    matrix[14] = 0;
+
+    return matrix;
+}
+
+export function toMat(matrixInfos: MatrixInfo[]): number[] {
+    const target = createMatrix();
 
     matrixInfos.forEach(info => {
         const {
