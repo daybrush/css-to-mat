@@ -16,7 +16,16 @@ export function parseMat(transform: string | string[]): number[] {
 export function getElementMatrix(el: HTMLElement) {
     return parseMat(getComputedStyle(el).transform!);
 }
+export function caculateMatrixDist(matrix: number[], pos: number[]) {
+    const res = mat4.multiply(createMatrix() as any, matrix as any, [pos[0], pos[1] || 0, pos[2] || 0, 1] as any);
+    const w = res[3] || 1;
 
+    return [
+        res[0] / w,
+        res[1] / w,
+        res[2] / w,
+    ];
+}
 export function getDistElementMatrix(el: HTMLElement, container = document.body): number[] {
     let target: HTMLElement | null = el;
     const matrix = createMatrix() as any;

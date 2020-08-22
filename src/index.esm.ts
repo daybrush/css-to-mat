@@ -3,6 +3,7 @@ export {
     parseMat,
     toMat,
     getDistElementMatrix,
+    caculateMatrixDist,
     getElementMatrix,
     createMatrix,
 } from "./CSSToMatrix";
