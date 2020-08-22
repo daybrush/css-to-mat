@@ -6,4 +6,4 @@ export {
     caculateMatrixDist,
     getElementMatrix,
     createMatrix,
-} from "./CSSToMatrix";
+} from "./CssToMatrix";
