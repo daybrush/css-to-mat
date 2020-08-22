@@ -26,7 +26,7 @@ export function getDistElementMatrix(el: HTMLElement, container = document.body)
         mat4.multiply(matrix, parseMat(transform) as mat4, matrix);
 
         if (target === container) {
-            return;
+            break;
         }
         target = target.parentElement;
     }
