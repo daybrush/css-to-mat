@@ -1,6 +1,6 @@
-import { mat4 } from "gl-matrix";
 import { splitComma, splitBracket, splitUnit, splitSpace, isArray } from "@daybrush/utils";
 import { MatrixInfo } from "./types";
+import { calculate, invert, matrix3d, rotateX3d, rotateY3d, rotateZ3d, scale3d, translate3d } from "@scena/matrix";
 
 export function createMatrix() {
     return [
@@ -17,7 +17,7 @@ export function getElementMatrix(el: HTMLElement) {
     return parseMat(getComputedStyle(el).transform!);
 }
 export function caculateMatrixDist(matrix: number[], pos: number[]) {
-    const res = mat4.multiply(createMatrix() as any, matrix as any, [pos[0], pos[1] || 0, pos[2] || 0, 1] as any);
+    const res = calculate(matrix, [pos[0], pos[1] || 0, pos[2] || 0, 1], 4);
     const w = res[3] || 1;
 
     return [
@@ -28,18 +28,18 @@ export function caculateMatrixDist(matrix: number[], pos: number[]) {
 }
 export function getDistElementMatrix(el: HTMLElement, container = document.body): number[] {
     let target: HTMLElement | null = el;
-    const matrix = createMatrix() as any;
+    let matrix = createMatrix();
 
     while (target) {
         const transform = getComputedStyle(target).transform!;
-        mat4.multiply(matrix, parseMat(transform) as mat4, matrix);
+        matrix = matrix3d(parseMat(transform), matrix);
 
         if (target === container) {
             break;
         }
         target = target.parentElement;
     }
-    mat4.invert(matrix, matrix);
+    matrix = invert(matrix, 4);
 
     matrix[12] = 0;
     matrix[13] = 0;
@@ -49,18 +49,18 @@ export function getDistElementMatrix(el: HTMLElement, container = document.body)
 }
 
 export function toMat(matrixInfos: MatrixInfo[]): number[] {
-    const target = createMatrix();
+    let target = createMatrix();
 
     matrixInfos.forEach(info => {
         const {
-            functionName,
+            matrixFunction,
             functionValue,
         } = info;
 
-        if (!functionName) {
+        if (!matrixFunction) {
             return;
         }
-        (mat4 as any)[functionName](target, target, functionValue);
+        target = matrixFunction(target, functionValue);
     });
     return target;
 }
@@ -70,55 +70,62 @@ export function parse(transform: string | string[]): MatrixInfo[] {
     return transforms.map(t => {
         const { prefix: name, value } = splitBracket(t);
 
-        let functionName: keyof typeof mat4 | "" = "";
+        let matrixFunction = null;
         let functionValue: any = "";
 
         if (name === "translate" || name === "translateX" || name === "translate3d") {
             const [posX, posY = 0, posZ = 0] = splitComma(value!).map(v => parseFloat(v));
 
-            functionName = "translate";
+            matrixFunction = translate3d;
             functionValue = [posX, posY, posZ];
         } else if (name === "translateY") {
             const posY = parseFloat(value!);
 
-            functionName = "translate";
+            matrixFunction = translate3d;
             functionValue = [0, posY, 0];
         } else if (name === "translateZ") {
             const posZ = parseFloat(value!);
 
-            functionName = "translate";
+            matrixFunction = translate3d;
             functionValue = [0, 0, posZ];
         } else if (name === "scale" || name === "scale3d") {
             const [sx, sy = sx, sz = 1] = splitComma(value!).map(v => parseFloat(v)) as number[];
 
-            functionName = "scale";
+            matrixFunction = scale3d;
             functionValue = [sx, sy, sz];
         } else if (name === "scaleX") {
             const sx = parseFloat(value!);
 
-            functionName = "scale";
+            matrixFunction = scale3d;
             functionValue = [sx, 1, 1];
         } else if (name === "scaleY") {
             const sy = parseFloat(value!);
 
-            functionName = "scale";
+            matrixFunction = scale3d;
             functionValue = [1, sy, 1];
         } else if (name === "scaleZ") {
             const sz = parseFloat(value!);
-            functionName = "scale";
+
+            matrixFunction = scale3d;
             functionValue = [1, 1, sz];
         } else if (name === "rotate" || name === "rotateZ" || name === "rotateX" || name === "rotateY") {
             const { unit, value: unitValue } = splitUnit(value!);
             const rad = unit === "rad" ? unitValue : unitValue * Math.PI / 180;
 
-            functionName = name === "rotate" ? "rotateZ" : name;
+            if (name === "rotate" || name === "rotateZ") {
+                matrixFunction = rotateZ3d;
+            } else if (name === "rotateX") {
+                matrixFunction = rotateX3d;
+            } else if (name === "rotateY") {
+                matrixFunction = rotateY3d;
+            }
             functionValue = rad;
         } else if (name === "matrix3d") {
-            functionName = "multiply";
+            matrixFunction = matrix3d;
             functionValue = splitComma(value!).map(v => parseFloat(v));
         } else if (name === "matrix") {
             const m = splitComma(value!).map(v => parseFloat(v));
-            functionName = "multiply";
+            matrixFunction = matrix3d;
             functionValue = [
                 m[0], m[1], 0, 0,
                 m[2], m[3], 0, 0,
@@ -129,7 +136,7 @@ export function parse(transform: string | string[]): MatrixInfo[] {
         return {
             name: name!,
             value: value!,
-            functionName,
+            matrixFunction,
             functionValue,
         };
     });
