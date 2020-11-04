@@ -70,7 +70,9 @@ export function parse(transform: string | string[]): MatrixInfo[] {
     return transforms.map(t => {
         const { prefix: name, value } = splitBracket(t);
 
+
         let matrixFunction = null;
+        let functionName: string = name;
         let functionValue: any = "";
 
         if (name === "translate" || name === "translateX" || name === "translate3d") {
@@ -113,6 +115,7 @@ export function parse(transform: string | string[]): MatrixInfo[] {
             const rad = unit === "rad" ? unitValue : unitValue * Math.PI / 180;
 
             if (name === "rotate" || name === "rotateZ") {
+                functionName = "rotateZ";
                 matrixFunction = rotateZ3d;
             } else if (name === "rotateX") {
                 matrixFunction = rotateX3d;
@@ -132,9 +135,12 @@ export function parse(transform: string | string[]): MatrixInfo[] {
                 0, 0, 1, 0,
                 m[4], m[5], 0, 1,
             ];
+        } else {
+            functionName = "";
         }
         return {
             name: name!,
+            functionName,
             value: value!,
             matrixFunction,
             functionValue,
