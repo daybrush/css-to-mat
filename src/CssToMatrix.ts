@@ -1,4 +1,4 @@
-import { splitComma, splitBracket, splitUnit, splitSpace, isArray } from "@daybrush/utils";
+import { splitComma, splitBracket, splitUnit, splitSpace, isArray, convertUnitSize } from "@daybrush/utils";
 import { MatrixInfo } from "./types";
 import { calculate, invert, matrix3d, rotateX3d, rotateY3d, rotateZ3d, scale3d, translate3d } from "@scena/matrix";
 
@@ -10,8 +10,8 @@ export function createMatrix() {
         0, 0, 0, 1,
     ];
 }
-export function parseMat(transform: string | string[]): number[] {
-    return toMat(parse(transform));
+export function parseMat(transform: string | string[], size: number | Record<string, ((pos: number) => number) | number> = 0): number[] {
+    return toMat(parse(transform, size));
 }
 export function getElementMatrix(el: HTMLElement) {
     return parseMat(getComputedStyle(el).transform!);
@@ -64,7 +64,7 @@ export function toMat(matrixInfos: MatrixInfo[]): number[] {
     });
     return target;
 }
-export function parse(transform: string | string[]): MatrixInfo[] {
+export function parse(transform: string | string[], size: number | Record<string, ((pos: number) => number) | number> = 0): MatrixInfo[] {
     const transforms = isArray(transform) ? transform : splitSpace(transform);
 
     return transforms.map(t => {
@@ -76,7 +76,7 @@ export function parse(transform: string | string[]): MatrixInfo[] {
         let functionValue: any = "";
 
         if (name === "translate" || name === "translateX" || name === "translate3d") {
-            const [posX, posY = 0, posZ = 0] = splitComma(value!).map(v => parseFloat(v));
+            const [posX, posY = 0, posZ = 0] = splitComma(value!).map(v => convertUnitSize(v, size));
 
             matrixFunction = translate3d;
             functionValue = [posX, posY, posZ];

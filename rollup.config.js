@@ -1,7 +1,6 @@
+const builder = require("@daybrush/builder");
 
-import builder from "@daybrush/builder";
-
-export default builder([
+module.exports = builder([
     {
         name: "CssToMatrix",
         input: "src/index.umd.ts",
