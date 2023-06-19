@@ -1,4 +1,4 @@
-import { splitComma, splitBracket, splitUnit, splitSpace, isArray, convertUnitSize } from "@daybrush/utils";
+import { splitComma, splitBracket, splitUnit, splitSpace, isArray, convertUnitSize, isObject } from "@daybrush/utils";
 import { MatrixInfo } from "./types";
 import { calculate, invert, matrix3d, rotateX3d, rotateY3d, rotateZ3d, scale3d, translate3d } from "@scena/matrix";
 
@@ -76,12 +76,34 @@ export function parse(transform: string | string[], size: number | Record<string
         let functionValue: any = "";
 
         if (name === "translate" || name === "translateX" || name === "translate3d") {
-            const [posX, posY = 0, posZ = 0] = splitComma(value!).map(v => convertUnitSize(v, size));
+            const nextSize = isObject(size) ? {
+                ...size,
+                "o%": size["%"],
+            } : {
+                "%": size,
+                "o%": size,
+            };
+            const [posX, posY = 0, posZ = 0] = splitComma(value!).map((v, i) => {
+                if (i === 0 && "x%" in nextSize) {
+                    nextSize["%"] = size["x%"];
+                } else if (i === 1 && "y%" in nextSize) {
+                    nextSize["%"] = size["y%"];
+                } else {
+                    nextSize["%"] = size["o%"];
+                }
+                return convertUnitSize(v, nextSize);
+            });
 
             matrixFunction = translate3d;
             functionValue = [posX, posY, posZ];
         } else if (name === "translateY") {
-            const posY = parseFloat(value!);
+            const nextSize = isObject(size) ? {
+                "%": size["y%"],
+                ...size,
+            } : {
+                "%": size,
+            };
+            const posY = convertUnitSize(value!, nextSize);
 
             matrixFunction = translate3d;
             functionValue = [0, posY, 0];
